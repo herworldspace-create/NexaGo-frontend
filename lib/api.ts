@@ -184,13 +184,13 @@ function collectionFrom<T>(payload: unknown): T[] {
 
 /** Load passenger ride categories from the backend catalog. */
 export async function getVehicleCategories(): Promise<VehicleCategory[]> {
-  const payload = await request<unknown>("admin/fare/categories");
+  const payload = await request<unknown>("fares/categories");
   return collectionFrom<VehicleCategory>(payload);
 }
 
 /** Load operating areas from the backend catalog. */
 export async function getOperatingAreas(): Promise<OperatingArea[]> {
-  const payload = await request<unknown>("admin/fare/areas");
+  const payload = await request<unknown>("fares/areas");
   return collectionFrom<OperatingArea>(payload);
 }
 
@@ -488,8 +488,8 @@ function toKobo(amountNaira: number): number {
 }
 
 /** Request a one-time verification code for a Nigerian phone number. */
-export function sendOtp(phone: string): Promise<void> {
-  return request<void>("auth/otp/request", {
+export function sendOtp(phone: string): Promise<OtpRequestResponse> {
+  return request<OtpRequestResponse>("auth/otp/request", {
     method: "POST",
     body: { phone },
   });
@@ -601,8 +601,8 @@ export function listNotifications(): Promise<UserNotification[]> {
 
 export function markNotificationRead(
   notificationId: string,
-): Promise<UserNotification> {
-  return request<UserNotification>(
+): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>(
     `notifications/${encodeURIComponent(notificationId)}/read`,
     {
       method: "PATCH",
@@ -632,8 +632,8 @@ export function submitRideRating(
 export function registerDeviceToken(
   token: string,
   platform: "IOS" | "ANDROID" | "WEB",
-): Promise<void> {
-  return request<void>("notifications/device-tokens", {
+): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>("notifications/device-tokens", {
     method: "POST",
     body: {
       token,
@@ -644,8 +644,8 @@ export function registerDeviceToken(
 
 export function unregisterDeviceToken(
   token: string,
-): Promise<void> {
-  return request<void>("notifications/device-tokens", {
+): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>("notifications/device-tokens", {
     method: "DELETE",
     body: { token },
   });
@@ -664,8 +664,8 @@ const rideOfferPath = (
 export function acceptDriverOffer(
   rideId: string,
   offerId: string,
-): Promise<Ride> {
-  return request<Ride>(
+): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>(
     rideOfferPath(rideId, offerId, "accept"),
     {
       method: "POST",
@@ -679,7 +679,7 @@ export function counterDriverOffer(
   rideId: string,
   offerId: string,
   amountNaira: number,
-): Promise<Ride> {
+): Promise<{ success?: boolean }> {
   const amountKobo = toKobo(amountNaira);
 
   if (
@@ -691,7 +691,7 @@ export function counterDriverOffer(
     );
   }
 
-  return request<Ride>(
+  return request<{ success?: boolean }>(
     rideOfferPath(rideId, offerId, "counter"),
     {
       method: "POST",
@@ -706,8 +706,8 @@ export function counterDriverOffer(
 export function declineDriverOffer(
   rideId: string,
   offerId: string,
-): Promise<Ride> {
-  return request<Ride>(
+): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>(
     rideOfferPath(rideId, offerId, "decline"),
     {
       method: "POST",
@@ -785,7 +785,7 @@ export async function fundWallet(
 /** Revoke the current session on the server. Local tokens are always cleared. */
 export async function logout(): Promise<void> {
   try {
-    if (getAccessToken()) await request<void>("auth/logout", { method: "POST", skipRefresh: true });
+    if (getAccessToken()) await request("auth/logout", { method: "POST", skipRefresh: true });
   } catch {
     // Server-side revocation is best effort; the local session is cleared regardless.
   } finally {
@@ -982,8 +982,8 @@ export function submitNinVerification(params: {
   nin: string;
   fullName: string;
   dateOfBirth: string;
-}): Promise<IdentityVerificationStatus> {
-  return request<IdentityVerificationStatus>("identity-verification", {
+}): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>("identity-verification", {
     method: "POST",
     body: { ...params, consentGiven: true },
   });
@@ -1041,8 +1041,8 @@ export function getDelivery(deliveryId: string): Promise<Delivery> {
   return request<Delivery>(`deliveries/${encodeURIComponent(deliveryId)}`);
 }
 
-export function cancelDelivery(deliveryId: string, reason?: string): Promise<Delivery> {
-  return request<Delivery>(`deliveries/${encodeURIComponent(deliveryId)}/cancel`, {
+export function cancelDelivery(deliveryId: string, reason?: string): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>(`deliveries/${encodeURIComponent(deliveryId)}/cancel`, {
     method: "POST",
     body: reason ? { reason } : {},
   });
@@ -1095,8 +1095,8 @@ export function addTrustedContact(contact: { name: string; phone: string }): Pro
   return request<TrustedContact>("safety/trusted-contacts", { method: "POST", body: contact });
 }
 
-export function removeTrustedContact(contactId: string): Promise<void> {
-  return request<void>(`safety/trusted-contacts/${encodeURIComponent(contactId)}`, {
+export function removeTrustedContact(contactId: string): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>(`safety/trusted-contacts/${encodeURIComponent(contactId)}`, {
     method: "DELETE",
   });
 }
@@ -1119,14 +1119,14 @@ export function triggerSos(
   rideId: string,
   location?: { latitude: number; longitude: number } | null,
 ): Promise<{ id: string; status?: string }> {
-  return request(`${rideSegment(rideId)}/sos`, {
+  return request<{ id: string; status?: string }>(`${rideSegment(rideId)}/sos`, {
     method: "POST",
     body: location ? { latitude: location.latitude, longitude: location.longitude } : {},
   });
 }
 
 export function createTripShareLink(rideId: string): Promise<{ url: string; expiresAt?: string }> {
-  return request(`${rideSegment(rideId)}/share`, { method: "POST", body: {} });
+  return request<{ url: string; expiresAt?: string }>(`${rideSegment(rideId)}/share`, { method: "POST", body: {} });
 }
 
 export interface SplitFareParticipant {
@@ -1190,15 +1190,15 @@ export function scheduleRide(params: {
   });
 }
 
-export function addRideStops(rideId: string, stops: RideLocation[]): Promise<Ride> {
-  return request<Ride>(`${rideSegment(rideId)}/stops`, {
+export function addRideStops(rideId: string, stops: RideLocation[]): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>(`${rideSegment(rideId)}/stops`, {
     method: "POST",
     body: { stops: stops.map((stop) => ({ lat: stop.latitude, lng: stop.longitude, address: stop.address })) },
   });
 }
 
-export function assignRideToBusiness(rideId: string, businessProfileId: string): Promise<Ride> {
-  return request<Ride>(`${rideSegment(rideId)}/business-profile`, {
+export function assignRideToBusiness(rideId: string, businessProfileId: string): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>(`${rideSegment(rideId)}/business-profile`, {
     method: "POST",
     body: { businessProfileId },
   });
@@ -1219,7 +1219,7 @@ export function getRewardsSummary(): Promise<RewardsSummary> {
 }
 
 export function redeemRewardPoints(points: number): Promise<{ voucherCode: string; valueKobo: number }> {
-  return request("rewards/redeem", { method: "POST", body: { points } });
+  return request<{ voucherCode: string; valueKobo: number }>("rewards/redeem", { method: "POST", body: { points } });
 }
 
 export type SavedPlaceLabel = "HOME" | "WORK";
@@ -1242,8 +1242,8 @@ export function saveSavedPlace(place: Omit<SavedPlace, "id">): Promise<SavedPlac
   return request<SavedPlace>("users/me/saved-places", { method: "POST", body: place });
 }
 
-export function removeSavedPlace(placeId: string): Promise<void> {
-  return request<void>(`users/me/saved-places/${encodeURIComponent(placeId)}`, { method: "DELETE" });
+export function removeSavedPlace(placeId: string): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>(`users/me/saved-places/${encodeURIComponent(placeId)}`, { method: "DELETE" });
 }
 
 export function updateCurrentUser(changes: {
@@ -1255,7 +1255,7 @@ export function updateCurrentUser(changes: {
 }
 
 export function tipDriver(rideId: string, amountNaira: number): Promise<{ id?: string; status?: string }> {
-  return request(`${rideSegment(rideId)}/tip`, {
+  return request<{ id?: string; status?: string }>(`${rideSegment(rideId)}/tip`, {
     method: "POST",
     body: { amountKobo: toKobo(amountNaira) },
   });
@@ -1307,8 +1307,8 @@ export function updateDriverLocation(params: {
   longitude: number;
   isOnline: boolean;
   heading?: number;
-}): Promise<unknown> {
-  return request("drivers/location", { method: "POST", body: params });
+}): Promise<{ success?: boolean }> {
+  return request<{ success?: boolean }>("drivers/location", { method: "POST", body: params });
 }
 
 export function getDriverWallet(): Promise<WalletBalance> {
