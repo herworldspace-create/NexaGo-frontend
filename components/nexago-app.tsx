@@ -252,8 +252,30 @@ export function NexaGoApp() {
   const [notificationUpdating, setNotificationUpdating] = useState('')
   const [ratingRideId, setRatingRideId] = useState('')
   const [ratingOpen, setRatingOpen] = useState(false)
+  const [ratingScore, setRatingScore] = useState<number>(5)
+  const [ratingComment, setRatingComment] = useState<string>('')
+  const [ratingError, setRatingError] = useState<string | null>(null)
+  const [ratingLoading, setRatingLoading] = useState<boolean>(false)
   const [authRole, setAuthRole] = useState<AuthSession['role']>('PASSENGER')
   const [sosOpen, setSosOpen] = useState(false)
+
+  const handleSubmitRating = async (event?: FormEvent) => {
+    if (event) event.preventDefault()
+    if (!ratingRideId) return
+    try {
+      setRatingLoading(true)
+      setRatingError(null)
+      await submitRideRating(ratingRideId, ratingScore, ratingComment)
+      setRatingOpen(false)
+      setRatingRideId('')
+      showToast('Thank you! Your rating has been submitted.')
+    } catch (error) {
+      setRatingError(getErrorMessage(error))
+    } finally {
+      setRatingLoading(false)
+    }
+  }
+
   const { data: notifications = [], error: notificationsError, isLoading: notificationsLoading, mutate: refreshNotifications } = useSWR(
     session ? ['nexago-notifications', session.userId] : null,
     () => listNotifications(),
@@ -1218,7 +1240,7 @@ export function NexaGoApp() {
       {ratingOpen && ratingRideId && <Sheet title="Rate your trip" onClose={() => setRatingOpen(false)}>
         <p className="mt-1 text-sm leading-6 text-slate-500">Your feedback helps keep NexaGo safe and reliable. Ratings are shared with the trip service.</p>
         <form onSubmit={(event) => void handleSubmitRating(event)} className="mt-5 grid gap-4">
-          <fieldset><legend className="text-xs font-semibold text-slate-700">How was your driver?</legend><div className="mt-2 flex gap-2" role="group" aria-label="Driver rating from one to five stars">{[1, 2, 3, 4, 5].map((score) => <button key={score} type="button" onClick={() => { setRatingScore(score); setRatingError('') }} aria-label={`${score} ${score === 1 ? 'star' : 'stars'}`} aria-pressed={ratingScore === score} className="grid size-11 place-items-center rounded-xl border border-slate-200 transition hover:border-amber-300 hover:bg-amber-50 aria-pressed:border-amber-300 aria-pressed:bg-amber-50"><Star size={20} className={ratingScore >= score ? 'fill-amber-400 text-amber-500' : 'text-slate-300'} /></button>)}</div></fieldset>
+          <fieldset><legend className="text-xs font-semibold text-slate-700">How was your driver?</legend><div className="mt-2 flex gap-2" role="group" aria-label="Driver rating from one to five stars">{[1, 2, 3, 4, 5].map((score) => <button key={score} type="button" onClick={() => { setRatingScore(score); setRatingError(null) }} aria-label={`${score} ${score === 1 ? 'star' : 'stars'}`} aria-pressed={ratingScore === score} className="grid size-11 place-items-center rounded-xl border border-slate-200 transition hover:border-amber-300 hover:bg-amber-50 aria-pressed:border-amber-300 aria-pressed:bg-amber-50"><Star size={20} className={ratingScore >= score ? 'fill-amber-400 text-amber-500' : 'text-slate-300'} /></button>)}</div></fieldset>
           <label className={labelClass}>Comment (optional)<textarea maxLength={1000} value={ratingComment} onChange={(event) => setRatingComment(event.target.value)} rows={3} placeholder="Share what went well" className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10" /></label>
           {ratingError && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-3 text-xs leading-5 text-rose-800">{ratingError}</p>}
           <button type="submit" disabled={ratingLoading || ratingScore === 0} className="h-12 rounded-xl bg-teal-800 text-sm font-bold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-50">{ratingLoading ? 'Submitting rating…' : 'Submit rating'}</button>
