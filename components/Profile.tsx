@@ -3,8 +3,8 @@
 import React from 'react';
 
 interface ProfileProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   signedIn?: boolean;
   user?: any;
   loading?: boolean;
@@ -17,8 +17,8 @@ interface ProfileProps {
 }
 
 export default function Profile({
-  isOpen,
-  onClose,
+  isOpen = true,
+  onClose = () => {},
   signedIn,
   user,
   loading,
@@ -29,7 +29,7 @@ export default function Profile({
   onSignIn,
   onLogout,
 }: ProfileProps) {
-  if (!isOpen) return null;
+  if (isOpen === false) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
@@ -65,7 +65,7 @@ export default function Profile({
             </div>
           </div>
 
-          {/* Menu Items */}
+          {/* Menu Items (Only Nexa Ride, Flight, and NexaPay Wallet) */}
           <div className="space-y-3 pt-2">
             <button 
               onClick={() => onClose()}
