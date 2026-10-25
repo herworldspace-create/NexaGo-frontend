@@ -928,7 +928,7 @@ export function NexaGoApp() {
           <button type="button" onClick={() => changeScreen('rides')} className="flex items-center gap-2.5" aria-label="NexaGo home">
             <BrandLogo />
           </button>
-          <nav className="hidden items-center gap-1 rounded-xl bg-slate-100 p-1 md:flex" aria-label="Main navigation">
+          <nav className="flex items-center gap-1 rounded-xl bg-slate-100 p-1" aria-label="Main navigation">
             {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet], ['driver', 'Drive', Car]] as const).map(([key, label, Icon]) => (
               <button key={key} type="button" onClick={() => changeScreen(key)} aria-current={screen === key ? 'page' : undefined} className={`flex h-9 items-center gap-2 rounded-lg px-3.5 text-xs font-semibold transition ${screen === key ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}><Icon size={15} aria-hidden="true" />{label}</button>
             ))}
