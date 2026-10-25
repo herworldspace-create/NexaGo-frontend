@@ -3,8 +3,3 @@ pmOnFail: ignore
 minimumReleaseAgeExclude:
   - '@next/*'
   - next
-
-allowBuilds:
-  '@swc/core': true
-  cbor-extract: true
-  esbuild: true
