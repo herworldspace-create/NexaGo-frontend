@@ -1292,7 +1292,7 @@ function WalletActionCard({ icon: Icon, title, detail, onClick }: { icon: typeof
 
 function Sheet({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   const dialogRef = useRef<HTMLElement>(null)
-  useDialogDismiss(dialogRef, onClose)
+  useDialogDismiss()
   return <div className="fixed inset-0 z-[1200] flex items-end justify-center bg-slate-950/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white p-5 pb-[max(env(safe-area-inset-bottom),20px)] shadow-2xl outline-none sm:rounded-3xl sm:p-6">
       <div className="mb-1 flex items-center justify-between"><h2 className="text-lg font-bold tracking-tight text-slate-900">{title}</h2><button type="button" onClick={onClose} aria-label="Close" className="grid size-9 place-items-center rounded-full text-slate-500 hover:bg-slate-100"><X size={19} /></button></div>
