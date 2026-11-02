@@ -48,6 +48,7 @@ type GoogleMapsNamespace = {
   Marker: new (options: Record<string, unknown>) => GoogleMarker
   Polyline: new (options: Record<string, unknown>) => GooglePolyline
   LatLngBounds: new () => GoogleBounds
+  importLibrary?: (name: string) => Promise<unknown>
 }
 
 declare global {
@@ -63,17 +64,20 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsNamespace> {
     return Promise.reject(new Error('Google Maps can only load in the browser.'))
   }
   const existing = window.google?.maps
-  if (existing) return Promise.resolve(existing)
+  if (existing) return resolveGoogleMaps(existing)
   if (mapsLoader) return mapsLoader
 
   mapsLoader = new Promise<GoogleMapsNamespace>((resolve, reject) => {
     const script = document.createElement('script')
     script.id = GOOGLE_SCRIPT_ID
     script.async = true
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&loading=async&v=weekly`
+    // The classic Maps JS script exposes google.maps.Map as a constructor.
+    // Do not request loading=async here: that flag expects importLibrary() and
+    // can leave the namespace without constructors when loaded this way.
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly`
     script.onload = () => {
       const maps = window.google?.maps
-      if (maps) resolve(maps)
+      if (maps) void resolveGoogleMaps(maps).then(resolve, reject)
       else reject(new Error('Google Maps loaded without the maps namespace.'))
     }
     script.onerror = () => {
@@ -84,6 +88,15 @@ function loadGoogleMaps(apiKey: string): Promise<GoogleMapsNamespace> {
   })
 
   return mapsLoader
+}
+
+async function resolveGoogleMaps(maps: GoogleMapsNamespace): Promise<GoogleMapsNamespace> {
+  if (typeof maps.Map === 'function') return maps
+  if (typeof maps.importLibrary === 'function') {
+    const library = await maps.importLibrary('maps') as { Map?: GoogleMapsNamespace['Map'] }
+    if (typeof library.Map === 'function') return { ...maps, Map: library.Map }
+  }
+  throw new Error('Google Maps loaded without a usable Map constructor.')
 }
 
 const circleIcon = (fill: string, stroke: string, scale: number) => ({
@@ -410,5 +423,5 @@ const LeafletFallback = dynamic(() => import('./nexago-map-leaflet'), {
  */
 export function NexaGoMap(props: NexaGoMapProps) {
   if (!GOOGLE_MAPS_KEY) return <LeafletFallback {...props} />
-  return <GoogleNexaMap {...props} apiKey={GOOGLE_MAPS_KEY} />
+  return <GoogleNexaMap key={GOOGLE_MAPS_KEY} {...props} apiKey={GOOGLE_MAPS_KEY} />
 }

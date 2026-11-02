@@ -476,6 +476,15 @@ export function NexaGoApp() {
   }
 
   useEffect(() => {
+    if (session) {
+      setAuthOpen(false)
+      return
+    }
+    setAuthOpen(true)
+    setAuthMode('email')
+  }, [session])
+
+  useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get('screen')
     if (requested === 'flights') setScreen('flights')
   }, [])
@@ -924,16 +933,16 @@ export function NexaGoApp() {
     <main className="min-h-[100dvh] overscroll-y-contain bg-[#f6f8f7] pb-[calc(6rem+env(safe-area-inset-bottom))] text-slate-900 md:pb-8">
       <SplashScreen />
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <button type="button" onClick={() => changeScreen('rides')} className="flex items-center gap-2.5" aria-label="NexaGo home">
+        <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
+          <button type="button" onClick={() => changeScreen('rides')} className="flex min-w-0 items-center gap-2.5" aria-label="NexaGo home">
             <BrandLogo />
           </button>
-          <nav className="flex items-center gap-1 rounded-xl bg-slate-100 p-1" aria-label="Main navigation">
-            {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet], ['driver', 'Drive', Car]] as const).map(([key, label, Icon]) => (
+          <nav className="hidden items-center gap-1 rounded-xl bg-slate-100 p-1 md:flex" aria-label="Main navigation">
+            {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet]] as const).map(([key, label, Icon]) => (
               <button key={key} type="button" onClick={() => changeScreen(key)} aria-current={screen === key ? 'page' : undefined} className={`flex h-9 items-center gap-2 rounded-lg px-3.5 text-xs font-semibold transition ${screen === key ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}><Icon size={15} aria-hidden="true" />{label}</button>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <button type="button" onClick={openNotifications} className="relative grid size-10 place-items-center rounded-xl border border-slate-200 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50" aria-label={session ? `Notifications${unreadNotificationCount ? `, ${unreadNotificationCount} unread` : ''}` : 'Sign in to view notifications'}>
               <Bell size={18} />
               {unreadNotificationCount > 0 && <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-orange-500 px-1 text-[10px] font-bold leading-5 text-white">{unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}</span>}
@@ -941,7 +950,7 @@ export function NexaGoApp() {
             {session ? (
               <button type="button" onClick={() => setProfileOpen(true)} className="grid size-10 place-items-center rounded-full bg-teal-100 text-sm font-bold text-teal-800 transition hover:bg-teal-200" aria-label="Open profile">{(currentUser?.passengerProfile?.fullName || currentUser?.email || 'N').charAt(0).toUpperCase()}</button>
             ) : (
-              <button type="button" onClick={openAuth} className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700">Sign in</button>
+              <button type="button" onClick={openAuth} className="h-10 rounded-xl bg-slate-900 px-3 text-xs font-semibold text-white transition hover:bg-slate-700 sm:px-4 sm:text-sm">Sign in</button>
             )}
           </div>
         </div>
@@ -1093,11 +1102,10 @@ export function NexaGoApp() {
         )}
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur md:hidden" aria-label="Main navigation">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur md:hidden" aria-label="Main navigation">
         <button type="button" onClick={() => changeScreen('rides')} aria-current={screen === 'rides' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'rides' ? 'text-teal-800' : 'text-slate-400'}`}><Navigation size={18} />Rides</button>
         <button type="button" onClick={() => changeScreen('flights')} aria-current={screen === 'flights' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'flights' ? 'text-teal-800' : 'text-slate-400'}`}><Plane size={18} />Flights</button>
         <button type="button" onClick={() => changeScreen('wallet')} aria-current={screen === 'wallet' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'wallet' ? 'text-teal-800' : 'text-slate-400'}`}><Wallet size={18} />NexaPay</button>
-        <button type="button" onClick={() => changeScreen('driver')} aria-current={screen === 'driver' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'driver' ? 'text-teal-800' : 'text-slate-400'}`}><Car size={18} />Drive</button>
       </nav>
 
       {fareOpen && selectedVehicle && <Sheet title="Your ride fare" onClose={() => setFareOpen(false)}>
@@ -1155,10 +1163,6 @@ export function NexaGoApp() {
             onOpenSafety={() => {
               setProfileOpen(false)
               setSosOpen(true)
-            }}
-            onOpenDriver={() => {
-              setProfileOpen(false)
-              changeScreen('driver')
             }}
             onUserUpdated={(updated) => {
               void mutateCurrentUser(updated, { revalidate: true })
@@ -1264,9 +1268,9 @@ export function NexaGoApp() {
         ) : (
           <>
             <div className="mt-3 flex items-center justify-between text-xs font-semibold text-slate-600">
-              <span>{emailMode === 'login' ? 'Sign in with your email' : 'Create a new account'}</span>
-              <button type="button" onClick={() => setEmailMode(emailMode === 'login' ? 'register' : 'login')} className="text-teal-700 underline">
-                {emailMode === 'login' ? 'Need an account? Register' : 'Have an account? Sign in'}
+              <span>{emailMode === 'login' ? 'Welcome back' : 'Create your account'}</span>
+              <button type="button" onClick={() => { setEmailMode(emailMode === 'login' ? 'register' : 'login'); setAuthError('') }} className="rounded-lg px-2 py-1 text-teal-700 underline underline-offset-2">
+                {emailMode === 'login' ? 'Create account' : 'Sign in instead'}
               </button>
             </div>
             <form className="mt-4 grid gap-4" onSubmit={(event) => void handleEmailAuth(event)}>

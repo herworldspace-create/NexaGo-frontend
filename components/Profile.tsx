@@ -10,7 +10,6 @@ interface ProfileProps {
   loading?: boolean;
   onOpenWallet?: () => void;
   onOpenSafety?: () => void;
-  onOpenDriver?: () => void;
   onUserUpdated?: (updated: any) => void;
   onSignIn?: () => void;
   onLogout?: () => void;
@@ -24,7 +23,6 @@ export default function Profile({
   loading,
   onOpenWallet,
   onOpenSafety,
-  onOpenDriver,
   onUserUpdated,
   onSignIn,
   onLogout,

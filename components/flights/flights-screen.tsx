@@ -61,7 +61,7 @@ export function FlightsScreen({ onBack, onBookAirportRide }: { onBack: () => voi
       <div className="mb-5">
         <p className="text-[10px] font-bold tracking-[.18em] text-teal-800">NEXAGO FLIGHTS</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-balance">Fly anywhere, ride to the gate.</h1>
-        <p className="mt-2 text-sm text-slate-500">Search live fares, pay securely, and book your NexaGo ride to the airport.</p>
+        <p className="mt-2 text-sm text-slate-500">{config?.searchEnabled ? 'Search live fares, pay securely, and book your NexaGo ride to the airport.' : 'Flight booking is not available yet. Airport rides are available now.'}</p>
       </div>
 
       <button type="button" onClick={onBookAirportRide} className="mb-4 flex w-full items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-left transition hover:border-orange-300">
