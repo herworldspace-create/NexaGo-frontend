@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import useSWR from 'swr'
-import { Car, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { Car, CheckCircle2, Clock, LifeBuoy, XCircle } from 'lucide-react'
 import type { FlightBookingStatus, FlightBookingStatusResponse } from '@/lib/flights/types'
 import { ItineraryLines } from './flight-offer-item'
 
@@ -51,6 +51,7 @@ export function FlightBookingStatusView({ bookingId }: { bookingId: string }) {
               <div className="mt-5 rounded-2xl bg-teal-50 p-4"><span className="block text-[10px] font-bold tracking-[.14em] text-teal-800">BOOKING REFERENCE</span><strong className="mt-1 block font-mono text-2xl tracking-widest text-slate-900">{data.bookingReference}</strong></div>
             )}
             {data.itinerary && <div className="mt-5 rounded-2xl border border-slate-200 p-4"><ItineraryLines itinerary={data.itinerary} /></div>}
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4"><h2 className="text-sm font-bold">Need help with this flight?</h2><p className="mt-1 text-xs leading-5 text-slate-600">For schedule changes, cancellations, or a payment issue, contact NexaGo with your booking reference. Ticket changes and refunds must be confirmed by the airline or support team.</p><a href={`mailto:support@nexago.com?subject=${encodeURIComponent(`NexaGo flight support: ${data.bookingReference ?? bookingId}`)}&body=${encodeURIComponent(`Hello NexaGo Support,\n\nPlease help with flight booking ${data.bookingReference ?? bookingId}.\n\nIssue: `)}`} className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-teal-800 px-4 text-xs font-bold text-white"><LifeBuoy size={15} />Contact support</a></div>
           </>
         )}
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">

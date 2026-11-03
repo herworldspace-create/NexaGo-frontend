@@ -1,126 +1,49 @@
-"use client";
+'use client'
 
-import React from 'react';
+import { useState } from 'react'
+import { getIdentityVerificationStatus, type CurrentUser, type IdentityVerificationStatus } from '../lib/api'
+import useSWR from 'swr'
 
 interface ProfileProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  signedIn?: boolean;
-  user?: any;
-  loading?: boolean;
-  onOpenWallet?: () => void;
-  onOpenSafety?: () => void;
-  onUserUpdated?: (updated: any) => void;
-  onSignIn?: () => void;
-  onLogout?: () => void;
+  user?: CurrentUser | null
+  signedIn?: boolean
+  loading?: boolean
+  onOpenWallet?: () => void
+  onOpenSafety?: () => void
+  onOpenHistory?: () => void
+  onOpenSupport?: () => void
+  onUserUpdated?: (updated: CurrentUser) => void
+  onSignIn?: () => void
+  onLogout?: () => void
 }
 
-export default function Profile({
-  isOpen = true,
-  onClose = () => {},
-  user,
-  onOpenWallet,
-  onOpenSafety,
-  onLogout,
-}: ProfileProps) {
-  if (isOpen === false) return null;
+const verificationFetcher = (): Promise<IdentityVerificationStatus> => getIdentityVerificationStatus()
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-white text-slate-900 h-full p-6 shadow-2xl flex flex-col justify-between overflow-y-auto rounded-l-3xl">
-        
-        {/* Header & User Info */}
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Profile</h2>
-            <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 text-lg">✕</button>
-          </div>
+export default function Profile({ user, loading = false, onOpenWallet, onOpenSafety, onOpenHistory, onOpenSupport, onLogout }: ProfileProps) {
+  const [verificationOpen, setVerificationOpen] = useState(false)
+  const { data: verification, error: verificationError, isLoading: verificationLoading } = useSWR('nexago-identity-verification', verificationFetcher, { revalidateOnFocus: true })
+  const status = String(verification?.status ?? user?.passengerProfile?.verificationStatus ?? '').toLowerCase()
+  const verificationLabel = status === 'verified' || status === 'approved' ? 'Verified' : status === 'pending' || status === 'processing' || status === 'submitted' ? 'Verification pending' : status === 'rejected' || status === 'failed' ? 'Verification needs attention' : 'Not verified'
+  const fullName = user?.passengerProfile?.fullName?.trim() || 'NexaGo rider'
+  const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' }) : null
+  const buttonClass = 'w-full rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100'
 
-          <div className="bg-[#0b4d44] text-white p-5 rounded-2xl flex items-center space-x-4 shadow-md">
-            <div className="w-14 h-14 rounded-full bg-slate-700 border-2 border-emerald-400 flex items-center justify-center text-xl font-bold">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
-            </div>
-            <div>
-              <h3 className="font-bold text-lg">{user?.name || 'Herworldspace'}</h3>
-              <p className="text-xs text-emerald-200">Identity not yet verified</p>
-              <p className="text-[10px] text-slate-300 mt-1">Member since October 2026</p>
-            </div>
-          </div>
-
-          {/* User Details */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3 text-sm text-slate-600">
-            <div className="flex items-center space-x-3">
-              <span>✉️</span>
-              <span>{user?.email || 'Herworldspace@gmail.com'}</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <span>📞</span>
-              <span>{user?.phone || 'No phone number on file'}</span>
-            </div>
-          </div>
-
-          {/* Menu Items (Only Nexa Ride, Flight, and NexaPay Wallet) */}
-          <div className="space-y-3 pt-2">
-            <button 
-              onClick={() => onClose()}
-              className="w-full bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3 text-slate-800 font-semibold text-sm transition text-left"
-            >
-              <span className="text-lg">🛺</span>
-              <span>Nexa Ride</span>
-            </button>
-
-            <button 
-              onClick={() => onClose()}
-              className="w-full bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3 text-slate-800 font-semibold text-sm transition text-left"
-            >
-              <span className="text-lg">✈️</span>
-              <span>Flight</span>
-            </button>
-
-            <button 
-              onClick={() => {
-                onClose();
-                if (onOpenWallet) onOpenWallet();
-              }}
-              className="w-full bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3 text-slate-800 font-semibold text-sm transition text-left"
-            >
-              <span className="text-lg">💳</span>
-              <span>NexaPay wallet & PIN</span>
-            </button>
-
-            <button 
-              onClick={() => onClose()}
-              className="w-full bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3 text-slate-800 font-semibold text-sm transition text-left"
-            >
-              <span className="text-lg">🎧</span>
-              <span>Contact support</span>
-            </button>
-            {onOpenSafety && (
-              <button
-                onClick={() => { onClose(); onOpenSafety() }}
-                className="w-full bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3 text-slate-800 font-semibold text-sm transition text-left"
-              >
-                <span className="text-lg">🛡️</span>
-                <span>Safety &amp; emergency</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Footer Sign Out */}
-        <div className="pt-6">
-          <button 
-            onClick={() => {
-              onClose();
-              if (onLogout) onLogout();
-            }}
-            className="w-full bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold py-3.5 rounded-2xl transition text-sm"
-          >
-            Sign out
-          </button>
-        </div>
-
+  return <div className="grid gap-4">
+    <section className="rounded-2xl bg-[#0b4d44] p-5 text-white">
+      <div className="flex items-center gap-4">
+        <div className="grid size-14 place-items-center rounded-full border-2 border-emerald-400 bg-slate-700 text-xl font-bold">{fullName.charAt(0).toUpperCase()}</div>
+        <div className="min-w-0"><h3 className="truncate text-lg font-bold">{loading ? 'Loading profile…' : fullName}</h3><p className="text-xs text-emerald-200">{verificationLoading ? 'Checking verification…' : verificationLabel}{verificationError && <span className="ml-1 text-amber-300">(status unavailable)</span>}</p>{memberSince && <p className="mt-1 text-[10px] text-slate-300">Member since {memberSince}</p>}</div>
       </div>
-    </div>
-  );
+      <div className="mt-4 grid gap-1 text-xs text-slate-200"><span>{user?.email || 'No email on file'}</span><span>{user?.phone || 'No phone number on file'}</span></div>
+      <button type="button" onClick={() => setVerificationOpen((open) => !open)} aria-expanded={verificationOpen} className="mt-4 rounded-lg border border-white/30 px-3 py-2 text-xs font-semibold hover:bg-white/10">{verificationOpen ? 'Hide verification details' : 'View verification details'}</button>
+      {verificationOpen && <div className="mt-3 rounded-xl bg-white/10 p-3 text-xs leading-5">{verificationError ? 'Verification status could not be loaded. Your account status is unconfirmed.' : verification?.status ? `Current status: ${String(verification.status)}${verification.verifiedAt ? ` · verified ${new Date(verification.verifiedAt).toLocaleDateString('en-NG')}` : ''}${verification.reason ? ` · ${verification.reason}` : ''}` : 'No verification result is available yet. Your identity has not been confirmed by NexaGo.'}</div>}
+    </section>
+    <nav aria-label="Profile shortcuts" className="grid gap-2">
+      {onOpenHistory && <button type="button" onClick={onOpenHistory} className={buttonClass}>🧾 &nbsp; Rides &amp; activity</button>}
+      {onOpenWallet && <button type="button" onClick={onOpenWallet} className={buttonClass}>💳 &nbsp; NexaPay wallet &amp; PIN</button>}
+      {onOpenSupport && <button type="button" onClick={onOpenSupport} className={buttonClass}>🎧 &nbsp; Help &amp; report a trip issue</button>}
+      {onOpenSafety && <button type="button" onClick={onOpenSafety} className={buttonClass}>🛡️ &nbsp; Safety &amp; emergency</button>}
+    </nav>
+    {onLogout && <button type="button" onClick={onLogout} className="w-full rounded-2xl bg-rose-50 py-3.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-100">Sign out</button>}
+  </div>
 }

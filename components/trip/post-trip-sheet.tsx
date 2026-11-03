@@ -2,7 +2,8 @@
 
 import { Banknote, Check, HandCoins, Star } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { payForRide, submitRideRating, tipDriver, type RidePaymentMethod } from '../../lib/api'
+import { getRidePayment, payForRide, submitRideRating, tipDriver, type RidePaymentMethod } from '../../lib/api'
+import useSWR from 'swr'
 import { formatNaira, friendlyError } from '../../lib/format'
 import { BottomSheet } from '../bottom-sheet'
 import { isServiceNotLive } from '../service-unavailable'
@@ -29,6 +30,7 @@ type PaymentState = 'unpaid' | 'paying' | 'cash' | 'checkout' | 'paid'
 export function PostTripSheet({ rideId, fareAmount, initialPaymentMethod, email, onClose, onDone }: PostTripSheetProps) {
   const [method, setMethod] = useState<RidePaymentMethod>(initialPaymentMethod)
   const [payment, setPayment] = useState<PaymentState>('unpaid')
+  const { data: paymentRecord, mutate: refreshPayment } = useSWR(rideId ? ['nexago-ride-payment', rideId] : null, () => getRidePayment(rideId), { refreshInterval: 5000, revalidateOnFocus: true })
   const [paymentError, setPaymentError] = useState('')
 
   const [score, setScore] = useState(0)
@@ -42,7 +44,9 @@ export function PostTripSheet({ rideId, fareAmount, initialPaymentMethod, email,
   const tipAmount = customTip ? Number(customTip) : tipPreset
   const tagOptions = score >= 4 ? POSITIVE_TAGS : score > 0 ? NEGATIVE_TAGS : []
   const fareLabel = fareAmount !== null ? formatNaira(fareAmount) : 'your fare'
-  const paymentSettled = payment === 'cash' || payment === 'checkout' || payment === 'paid'
+  const paymentSettled = paymentRecord?.status === 'PAID' || payment === 'cash'
+  const paymentStatus = paymentRecord?.status?.toLowerCase()
+  const showReceipt = paymentRecord?.status === 'PAID'
 
   const startPayment = async () => {
     if (method !== 'CASH' && !email) {
@@ -55,11 +59,13 @@ export function PostTripSheet({ rideId, fareAmount, initialPaymentMethod, email,
       const result = await payForRide(rideId, method, email ?? undefined)
       if (method === 'CASH') {
         setPayment('cash')
+        void refreshPayment()
         return
       }
       if (!result.authorizationUrl) throw new Error('The payment page could not be opened. Please try again.')
       window.open(result.authorizationUrl, '_blank', 'noopener,noreferrer')
       setPayment('checkout')
+      void refreshPayment()
     } catch (payError) {
       const message = friendlyError(payError)
       if (/already been paid/i.test(message)) {
@@ -119,11 +125,13 @@ export function PostTripSheet({ rideId, fareAmount, initialPaymentMethod, email,
           <h3 id="post-trip-pay" className="text-xs font-bold uppercase tracking-wide text-slate-500">Trip fare</h3>
           <strong className="text-xl font-bold text-slate-900">{fareLabel}</strong>
         </div>
-        {payment === 'cash' ? (
+        {showReceipt ? (
+          <div role="status" className="mt-3 rounded-xl bg-emerald-50 px-3.5 py-3 text-xs text-emerald-900"><p className="flex items-center gap-2 font-semibold"><Check size={16} />Payment confirmed by NexaGo.</p><p className="mt-2">Amount: {formatNaira((paymentRecord.amountKobo ?? 0) / 100)}</p>{paymentRecord.id && <p className="mt-1 break-all">Payment reference: {paymentRecord.id}</p>}<button type="button" onClick={() => window.print()} className="mt-2 font-bold underline">Print receipt</button></div>
+        ) : payment === 'cash' ? (
           <p role="status" className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-3 text-xs leading-5 text-amber-900"><Banknote size={16} className="mt-0.5 shrink-0" aria-hidden="true" />Please hand {fareLabel} in cash to your driver. They&apos;ll confirm once received.</p>
         ) : payment === 'checkout' ? (
-          <p role="status" className="mt-3 flex items-start gap-2 rounded-xl bg-teal-50 px-3.5 py-3 text-xs leading-5 text-teal-900"><Check size={16} className="mt-0.5 shrink-0" aria-hidden="true" />Paystack checkout opened in a new tab. {method === 'BANK_TRANSFER' ? 'Transfer to the one-time account shown there.' : 'Complete your card payment there.'}</p>
-        ) : payment === 'paid' ? (
+          <div role="status" className="mt-3 flex items-start gap-2 rounded-xl bg-teal-50 px-3.5 py-3 text-xs leading-5 text-teal-900"><Check size={16} className="mt-0.5 shrink-0" aria-hidden="true" /><span>Paystack checkout opened in a new tab. {method === 'BANK_TRANSFER' ? 'Transfer to the one-time account shown there.' : 'Complete your card payment there.'} NexaGo payment status: {paymentStatus || 'awaiting confirmation'}. Refreshing automatically.</span><button type="button" onClick={() => void refreshPayment()} className="ml-auto shrink-0 font-bold underline">Check</button></div>
+        ) : payment === 'paid' || paymentRecord?.status === 'PAID' ? (
           <p role="status" className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 px-3.5 py-3 text-xs font-semibold text-emerald-800"><Check size={16} aria-hidden="true" />This trip is fully paid.</p>
         ) : (
           <div className="mt-3 grid gap-3">

@@ -21,7 +21,7 @@ import {
   Landmark,
   Receipt,
   Minus,
-  Navigation,
+  History as HistoryIcon, Navigation,
   Plane,
   Plus,
   ShieldCheck,
@@ -88,6 +88,8 @@ import Profile from './Profile'
 import { BrandLogo } from './brand/brand-logo'
 import { SplashScreen } from './brand/splash-screen'
 import { TransactionHistory } from './nexapay/transaction-history'
+import { RideActivity } from './trip/ride-activity'
+import { SupportSheet } from './trip/support-sheet'
 import { LiveTripPanel, type LiveConnection } from './trip/live-trip-panel'
 import { RideTierSelector } from './trip/ride-tier-selector'
 import { TripOptions, MAX_STOPS, type TripMode } from './trip/trip-options'
@@ -98,7 +100,7 @@ const NexaGoMap = dynamic(() => import('../app/nexago-map').then((module) => mod
   loading: () => <div className="h-full min-h-[210px] animate-pulse rounded-2xl bg-emerald-50" />,
 })
 
-type Screen = 'rides' | 'wallet' | 'flights'
+type Screen = 'rides' | 'wallet' | 'flights' | 'activity'
 type WalletModal = 'airtime' | 'data' | 'send' | 'bank' | 'bills' | null
 type Vehicle = { id: string; label: string; description: string; categoryId: string; icon: typeof Bike }
 type DriverOffer = { id: string; amount: number; driverName: string; driverRating?: number }
@@ -222,6 +224,8 @@ export function NexaGoApp() {
   const [rideStatus, setRideStatus] = useState<'idle' | 'searching' | 'accepted' | 'declined' | 'completed'>('idle')
   const [walletModal, setWalletModal] = useState<WalletModal>(null)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [supportOpen, setSupportOpen] = useState(false)
+  const [supportReference, setSupportReference] = useState('')
   const [network, setNetwork] = useState<VtuNetwork>('MTN')
   const [phone, setPhone] = useState('')
   const [planId, setPlanId] = useState('')
@@ -328,6 +332,16 @@ export function NexaGoApp() {
     }).catch(() => undefined)
     return () => { active = false }
   }, [session?.userId])
+
+  useEffect(() => {
+    const openSupport = (event: Event) => {
+      const detail = (event as CustomEvent<{ rideId?: string }>).detail
+      setSupportReference(detail?.rideId ?? '')
+      setSupportOpen(true)
+    }
+    window.addEventListener('nexago:open-support', openSupport)
+    return () => window.removeEventListener('nexago:open-support', openSupport)
+  }, [])
 
   useEffect(() => {
     if (walletModal !== 'data') return
@@ -921,7 +935,7 @@ export function NexaGoApp() {
             <BrandLogo />
           </button>
           <nav className="flex items-center gap-1 rounded-xl bg-slate-100 p-1" aria-label="Main navigation">
-            {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet]] as const).map(([key, label, Icon]) => (
+            {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet], ['activity', 'Activity', HistoryIcon]] as const).map(([key, label, Icon]) => (
               <button key={key} type="button" onClick={() => changeScreen(key)} aria-current={screen === key ? 'page' : undefined} className={`flex h-9 items-center gap-2 rounded-lg px-3.5 text-xs font-semibold transition ${screen === key ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}><Icon size={15} aria-hidden="true" />{label}</button>
             ))}
           </nav>
@@ -1053,6 +1067,8 @@ export function NexaGoApp() {
               </section>
             </div>
           </>
+        ) : screen === 'activity' ? (
+          <section className="mx-auto max-w-4xl"><button type="button" onClick={() => changeScreen('rides')} className="mb-5 inline-flex items-center gap-2 text-xs font-semibold text-teal-800"><ArrowLeft size={15} /> Back to rides</button><RideActivity /></section>
         ) : screen === 'flights' ? (
           <FlightsScreen onBack={() => changeScreen('rides')} onBookAirportRide={() => { changeScreen('rides'); showToast('Tap the airport on the map to set it as your drop-off.') }} />
         ) : (
@@ -1080,10 +1096,11 @@ export function NexaGoApp() {
         )}
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur md:hidden" aria-label="Main navigation">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur md:hidden" aria-label="Main navigation">
         <button type="button" onClick={() => changeScreen('rides')} aria-current={screen === 'rides' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'rides' ? 'text-teal-800' : 'text-slate-400'}`}><Navigation size={18} />Rides</button>
         <button type="button" onClick={() => changeScreen('flights')} aria-current={screen === 'flights' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'flights' ? 'text-teal-800' : 'text-slate-400'}`}><Plane size={18} />Flights</button>
         <button type="button" onClick={() => changeScreen('wallet')} aria-current={screen === 'wallet' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'wallet' ? 'text-teal-800' : 'text-slate-400'}`}><Wallet size={18} />NexaPay</button>
+        <button type="button" onClick={() => changeScreen('activity')} aria-current={screen === 'activity' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'activity' ? 'text-teal-800' : 'text-slate-400'}`}><HistoryIcon size={18} />Activity</button>
       </nav>
 
       {fareOpen && selectedVehicle && <Sheet title="Your ride fare" onClose={() => setFareOpen(false)}>
@@ -1208,6 +1225,8 @@ export function NexaGoApp() {
           onDone={finishPostTrip}
         />
       )}
+
+      {supportOpen && <SupportSheet initialReference={supportReference} onClose={() => setSupportOpen(false)} />}
 
       {sosOpen && (
         <SosSheet
