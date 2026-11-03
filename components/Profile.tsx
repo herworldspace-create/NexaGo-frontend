@@ -10,7 +10,6 @@ interface ProfileProps {
   loading?: boolean;
   onOpenWallet?: () => void;
   onOpenSafety?: () => void;
-  onOpenDriver?: () => void;
   onUserUpdated?: (updated: any) => void;
   onSignIn?: () => void;
   onLogout?: () => void;
@@ -19,14 +18,9 @@ interface ProfileProps {
 export default function Profile({
   isOpen = true,
   onClose = () => {},
-  signedIn,
   user,
-  loading,
   onOpenWallet,
   onOpenSafety,
-  onOpenDriver,
-  onUserUpdated,
-  onSignIn,
   onLogout,
 }: ProfileProps) {
   if (isOpen === false) return null;
@@ -101,6 +95,15 @@ export default function Profile({
               <span className="text-lg">🎧</span>
               <span>Contact support</span>
             </button>
+            {onOpenSafety && (
+              <button
+                onClick={() => { onClose(); onOpenSafety() }}
+                className="w-full bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3 text-slate-800 font-semibold text-sm transition text-left"
+              >
+                <span className="text-lg">🛡️</span>
+                <span>Safety &amp; emergency</span>
+              </button>
+            )}
           </div>
         </div>
 

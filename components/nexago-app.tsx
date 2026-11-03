@@ -78,7 +78,6 @@ import {
   type VtuNetwork,
   type VtuType,
 } from '../lib/api'
-import { DriverMode } from './driver/driver-mode'
 import { FlightsScreen } from './flights/flights-screen'
 import { PaymentMethodPicker } from './trip/payment-method-picker'
 import { PostTripSheet } from './trip/post-trip-sheet'
@@ -99,7 +98,7 @@ const NexaGoMap = dynamic(() => import('../app/nexago-map').then((module) => mod
   loading: () => <div className="h-full min-h-[210px] animate-pulse rounded-2xl bg-emerald-50" />,
 })
 
-type Screen = 'rides' | 'wallet' | 'flights' | 'driver'
+type Screen = 'rides' | 'wallet' | 'flights'
 type WalletModal = 'airtime' | 'data' | 'send' | 'bank' | 'bills' | null
 type Vehicle = { id: string; label: string; description: string; categoryId: string; icon: typeof Bike }
 type DriverOffer = { id: string; amount: number; driverName: string; driverRating?: number }
@@ -251,7 +250,6 @@ export function NexaGoApp() {
   const [ratingRideId, setRatingRideId] = useState('')
   const [ratingOpen, setRatingOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<RidePaymentMethod>('CASH')
-  const [authRole, setAuthRole] = useState<AuthSession['role']>('PASSENGER')
   const [sosOpen, setSosOpen] = useState(false)
 
   const { data: notifications = [], error: notificationsError, isLoading: notificationsLoading, mutate: refreshNotifications } = useSWR(
@@ -438,17 +436,11 @@ export function NexaGoApp() {
     window.setTimeout(() => setToast(''), 3200)
   }, [])
 
-  const openAuthAs = (role: AuthSession['role']) => {
-    setAuthRole(role)
+  const openAuth = () => {
     setAuthOpen(true)
     setAuthMode('email')
     setAuthStep('phone')
     setAuthError('')
-  }
-  const openAuth = () => openAuthAs('PASSENGER')
-  const openDriverAuth = () => {
-    if (session) signOut({ silent: true })
-    openAuthAs('DRIVER')
   }
 
   const loadWalletBalance = async () => {
@@ -750,7 +742,7 @@ export function NexaGoApp() {
     setAuthLoading(true)
     setAuthError('')
     try {
-      const verified = await verifyOtp(authPhone.trim(), otp.trim(), authRole)
+      const verified = await verifyOtp(authPhone.trim(), otp.trim(), 'PASSENGER')
       setAccessToken(verified.accessToken)
       setSession(verified)
       setAuthOpen(false)
@@ -773,7 +765,7 @@ export function NexaGoApp() {
       if (emailMode === 'login') {
         verified = await loginWithEmail(authEmail.trim(), authPassword)
       } else {
-        verified = await registerWithEmail(authEmail.trim(), authPassword, authRole)
+        verified = await registerWithEmail(authEmail.trim(), authPassword, 'PASSENGER')
       }
       setAccessToken(verified.accessToken)
       setSession(verified)
@@ -929,7 +921,7 @@ export function NexaGoApp() {
             <BrandLogo />
           </button>
           <nav className="flex items-center gap-1 rounded-xl bg-slate-100 p-1" aria-label="Main navigation">
-            {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet], ['driver', 'Drive', Car]] as const).map(([key, label, Icon]) => (
+            {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet]] as const).map(([key, label, Icon]) => (
               <button key={key} type="button" onClick={() => changeScreen(key)} aria-current={screen === key ? 'page' : undefined} className={`flex h-9 items-center gap-2 rounded-lg px-3.5 text-xs font-semibold transition ${screen === key ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}><Icon size={15} aria-hidden="true" />{label}</button>
             ))}
           </nav>
@@ -1061,11 +1053,6 @@ export function NexaGoApp() {
               </section>
             </div>
           </>
-        ) : screen === 'driver' ? (
-          <section className="mx-auto max-w-3xl">
-            <button type="button" onClick={() => changeScreen('rides')} className="mb-5 inline-flex items-center gap-2 text-xs font-semibold text-teal-800"><ArrowLeft size={15} /> Back to rides</button>
-            <DriverMode isDriver={session?.role === 'DRIVER'} signedIn={Boolean(session)} onSignInAsDriver={openDriverAuth} onToast={showToast} />
-          </section>
         ) : screen === 'flights' ? (
           <FlightsScreen onBack={() => changeScreen('rides')} onBookAirportRide={() => { changeScreen('rides'); showToast('Tap the airport on the map to set it as your drop-off.') }} />
         ) : (
@@ -1093,11 +1080,10 @@ export function NexaGoApp() {
         )}
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur md:hidden" aria-label="Main navigation">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur md:hidden" aria-label="Main navigation">
         <button type="button" onClick={() => changeScreen('rides')} aria-current={screen === 'rides' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'rides' ? 'text-teal-800' : 'text-slate-400'}`}><Navigation size={18} />Rides</button>
         <button type="button" onClick={() => changeScreen('flights')} aria-current={screen === 'flights' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'flights' ? 'text-teal-800' : 'text-slate-400'}`}><Plane size={18} />Flights</button>
         <button type="button" onClick={() => changeScreen('wallet')} aria-current={screen === 'wallet' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'wallet' ? 'text-teal-800' : 'text-slate-400'}`}><Wallet size={18} />NexaPay</button>
-        <button type="button" onClick={() => changeScreen('driver')} aria-current={screen === 'driver' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'driver' ? 'text-teal-800' : 'text-slate-400'}`}><Car size={18} />Drive</button>
       </nav>
 
       {fareOpen && selectedVehicle && <Sheet title="Your ride fare" onClose={() => setFareOpen(false)}>
@@ -1155,10 +1141,6 @@ export function NexaGoApp() {
             onOpenSafety={() => {
               setProfileOpen(false)
               setSosOpen(true)
-            }}
-            onOpenDriver={() => {
-              setProfileOpen(false)
-              changeScreen('driver')
             }}
             onUserUpdated={(updated) => {
               void mutateCurrentUser(updated, { revalidate: true })
