@@ -130,7 +130,8 @@ function GoogleNexaMap({
   const driverFrom = useRef<MapCoordinate | null>(null)
   const routeLine = useRef<GooglePolyline | null>(null)
   const clickHandler = useRef(onChooseDropoff)
-  clickHandler.current = onChooseDropoff
+
+  useEffect(() => { clickHandler.current = onChooseDropoff }, [onChooseDropoff])
 
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')

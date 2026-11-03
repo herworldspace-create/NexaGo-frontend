@@ -46,7 +46,7 @@ export function TripChatSheet({ rideId, socket, currentUserId, onClose }: TripCh
     if (!body) return
     setSendError('')
     setDraft('')
-    const optimistic: TripMessage = { id: `pending-${Date.now()}`, rideId, senderUserId: currentUserId ?? 'me', body, createdAt: new Date().toISOString() }
+    const optimistic: TripMessage = { id: `pending-${crypto.randomUUID()}`, rideId, senderUserId: currentUserId ?? 'me', body, createdAt: new Date().toISOString() }
     await mutate(async (current = []) => {
       const saved = await sendTripMessage(rideId, body)
       return [...current.filter((item) => item.id !== saved.id), saved]

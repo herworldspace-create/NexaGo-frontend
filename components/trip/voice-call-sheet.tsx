@@ -22,7 +22,9 @@ const stateLabel: Record<TripCall['state'], string> = {
   failed: 'Call unavailable',
 }
 
-export function VoiceCallSheet({ call, driverName }: { call: TripCall; driverName: string }) {
+type VoiceCallSheetProps = { call: Omit<TripCall, 'remoteAudioRef' | 'startCall'>; driverName: string }
+
+export function VoiceCallSheet({ call, driverName }: VoiceCallSheetProps) {
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {

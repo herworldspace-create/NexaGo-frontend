@@ -47,6 +47,7 @@ export function LiveTripPanel(props: LiveTripPanelProps) {
   const [unread, setUnread] = useState(0)
   const call = useTripCall(socket, rideId)
   const { data: ridePin } = useSWR('ride-pin', () => getRidePinSettings(), { shouldRetryOnError: false })
+  const { state: callState, startCall, remoteAudioRef, ...callControls } = call
   const driverAssigned = status === 'accepted'
 
   useEffect(() => {
@@ -92,7 +93,8 @@ export function LiveTripPanel(props: LiveTripPanelProps) {
         )}
         <div className="grid grid-cols-4 gap-2">
           <ActionButton label="Chat" icon={<MessageCircle size={19} className="text-teal-700" aria-hidden="true" />} onClick={openChat} badge={unread} disabled={!driverAssigned} />
-          <ActionButton label="Call" icon={<Phone size={19} className="text-teal-700" aria-hidden="true" />} onClick={() => void call.startCall()} disabled={!driverAssigned || call.state !== 'idle'} />
+          {/* These values come from the call hook and are intentionally bound to UI actions. */}
+          <ActionButton label="Call" icon={<Phone size={19} className="text-teal-700" aria-hidden="true" />} onClick={startCall} disabled={!driverAssigned || callState !== 'idle'} />
           <ActionButton label="Share" icon={<Share2 size={19} className="text-teal-700" aria-hidden="true" />} onClick={() => setPanel('share')} />
           <ActionButton label="Split" icon={<SplitSquareHorizontal size={19} className="text-teal-700" aria-hidden="true" />} onClick={() => setPanel('split')} />
         </div>
@@ -101,8 +103,8 @@ export function LiveTripPanel(props: LiveTripPanelProps) {
         </button>
       </div>
 
-      <audio ref={call.remoteAudioRef} autoPlay className="hidden" />
-      <VoiceCallSheet call={call} driverName="Your driver" />
+      <audio ref={remoteAudioRef} autoPlay className="hidden" />
+      <VoiceCallSheet call={{...callControls, state: callState}} driverName="Your driver" />
       {panel === 'chat' && <TripChatSheet rideId={rideId} socket={socket} currentUserId={currentUserId} onClose={() => setPanel(null)} />}
       {panel === 'share' && <ShareTripSheet rideId={rideId} pickupLabel={props.pickupLabel} dropoffLabel={props.dropoffLabel} onClose={() => setPanel(null)} onToast={onToast} />}
       {panel === 'split' && <SplitFareSheet rideId={rideId} fareAmount={fareAmount} onClose={() => setPanel(null)} onToast={onToast} />}

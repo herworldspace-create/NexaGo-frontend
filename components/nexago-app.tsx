@@ -11,7 +11,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Bike,
-  Car,
   Check,
   Siren,
   ChevronDown,
@@ -76,7 +75,6 @@ import {
   type VehicleCategory,
   type VtuDataBundle,
   type VtuNetwork,
-  type VtuType,
 } from '../lib/api'
 import { FlightsScreen } from './flights/flights-screen'
 import { PaymentMethodPicker } from './trip/payment-method-picker'
@@ -283,7 +281,7 @@ export function NexaGoApp() {
 
   useEffect(() => {
     const stored = getStoredSession()
-    if (stored) setSession(stored)
+    if (stored) queueMicrotask(() => setSession(stored))
     const handleExpired = () => {
       setSession(null)
       setWalletBalance(null)
@@ -296,12 +294,13 @@ export function NexaGoApp() {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired)
   }, [])
 
+  const showToast = useCallback((message: string) => {
+    setToast(message)
+    window.setTimeout(() => setToast(''), 3200)
+  }, [])
+
   useEffect(() => {
-    if (!session?.userId) {
-      setCatalogLoading(false)
-      setCatalogError("")
-      return
-    }
+    if (!session?.userId) return
     let active = true
     setCatalogLoading(true)
     Promise.allSettled([getVehicleCategories(), getOperatingAreas()]).then(([categoryResult, areaResult]) => {
@@ -346,7 +345,7 @@ export function NexaGoApp() {
   useEffect(() => {
     if (walletModal !== 'data') return
     let active = true
-    setBundleLoading(true)
+    const loadingTimer = window.setTimeout(() => { if (active) setBundleLoading(true) }, 0)
     getDataBundles(network).then((bundles) => {
       if (!active) return
       const available = bundles.filter((bundle) => bundle.code && Number.isFinite(bundle.priceKobo) && bundle.priceKobo > 0)
@@ -358,7 +357,7 @@ export function NexaGoApp() {
         setWalletError(getErrorMessage(error))
       }
     }).finally(() => { if (active) setBundleLoading(false) })
-    return () => { active = false }
+    return () => { active = false; window.clearTimeout(loadingTimer) }
   }, [network, walletModal])
 
   useEffect(() => {
@@ -387,11 +386,10 @@ export function NexaGoApp() {
         reconnectionAttempts: 6,
       })
     } catch (error) {
-      setRideError(getErrorMessage(error))
+      window.setTimeout(() => { if (active) setRideError(getErrorMessage(error)) }, 0)
       return () => { active = false }
     }
-    setLiveSocket(socket)
-    setLiveConnection('connecting')
+    window.setTimeout(() => { if (active) { setLiveSocket(socket); setLiveConnection('connecting') } }, 0)
     socket.on('connect', () => {
       setLiveConnection('live')
       socket.emit('ride:subscribe', { rideId })
@@ -441,14 +439,9 @@ export function NexaGoApp() {
       active = false
       socket.emit('ride:unsubscribe', { rideId })
       socket.disconnect()
-      setLiveSocket(null)
+      window.setTimeout(() => setLiveSocket((current) => current === socket ? null : current), 0)
     }
-  }, [rideId, session?.accessToken])
-
-  const showToast = useCallback((message: string) => {
-    setToast(message)
-    window.setTimeout(() => setToast(''), 3200)
-  }, [])
+  }, [rideId, session?.accessToken, showToast])
 
   const openAuth = () => {
     setAuthOpen(true)
@@ -483,7 +476,9 @@ export function NexaGoApp() {
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get('screen')
-    if (requested === 'flights') setScreen('flights')
+    if (requested === 'flights') {
+      window.setTimeout(() => setScreen('flights'), 0)
+    }
   }, [])
 
   const openNotifications = () => {
@@ -666,7 +661,7 @@ export function NexaGoApp() {
       if (tripMode === 'scheduled') {
         const when = new Date(scheduledFor)
         if (!scheduledFor || Number.isNaN(when.getTime())) throw new Error('Choose a pickup date and time for your scheduled ride.')
-        if (when.getTime() < Date.now() + 14 * 60_000) throw new Error('Scheduled rides must be booked at least 15 minutes ahead.')
+        if (when.getTime() < new Date().getTime() + 14 * 60_000) throw new Error('Scheduled rides must be booked at least 15 minutes ahead.')
         setRideLoading(true)
         await scheduleRide({
           operatingAreaId: selectedAreaId,

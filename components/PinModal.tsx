@@ -20,11 +20,11 @@ export default function PinModal({ isOpen, onClose, onSuccess, title = 'Enter tr
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const wasOpen = useRef(false)
 
   useEffect(() => {
-    if (!isOpen) return
-    setPin('')
-    setError('')
+    if (!isOpen) { wasOpen.current = false; return }
+    if (!wasOpen.current) { setPin(''); setError(''); wasOpen.current = true }
     const timer = window.setTimeout(() => inputRef.current?.focus(), 30)
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !submitting) onClose()
