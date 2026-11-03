@@ -47,6 +47,8 @@ export function FlightBookingStatusView({ bookingId }: { bookingId: string }) {
               <Icon size={28} className={copy.tone === 'success' ? 'text-teal-700' : copy.tone === 'error' ? 'text-rose-600' : 'text-orange-500'} aria-hidden="true" />
               <div><h1 className="text-2xl font-bold tracking-tight">{copy.title}</h1><p className="mt-1 text-sm text-slate-500">{copy.detail}</p></div>
             </div>
+            {data.status === 'booking_failed_refund_pending' && data.manualReviewReason && <p role="alert" className="mt-4 rounded-xl bg-amber-50 px-3.5 py-3 text-xs leading-5 text-amber-900">{data.manualReviewReason}</p>}
+            {data.status === 'manual_review' && <p role="status" className="mt-4 rounded-xl bg-amber-50 px-3.5 py-3 text-xs leading-5 text-amber-900">{data.manualReviewReason ?? 'Our support team is checking the ticket status. Please contact support before retrying payment.'}</p>}
             {data.bookingReference && (
               <div className="mt-5 rounded-2xl bg-teal-50 p-4"><span className="block text-[10px] font-bold tracking-[.14em] text-teal-800">BOOKING REFERENCE</span><strong className="mt-1 block font-mono text-2xl tracking-widest text-slate-900">{data.bookingReference}</strong></div>
             )}

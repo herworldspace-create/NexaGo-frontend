@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { flightBookings } from '@/lib/db/schema'
+import { isIsoDate } from '@/lib/flights/validation'
 import { getFlightServiceStatus, notConfiguredResponse } from '@/lib/flights/config'
 import { encryptJson } from '@/lib/flights/crypto'
 import { DuffelError, getOffer, summarizeItinerary } from '@/lib/flights/duffel'
@@ -20,27 +21,39 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/
 function validatePassenger(input: FlightPassengerDetails, requiresPassport: boolean): string | null {
   if (!TITLES.includes(input.title)) return 'Choose a title for each passenger.'
   if (!NAME.test(input.givenName?.trim() ?? '') || !NAME.test(input.familyName?.trim() ?? '')) return 'Enter names exactly as they appear on the travel document.'
-  if (!DATE.test(input.dateOfBirth ?? '') || new Date(input.dateOfBirth) >= new Date()) return 'Enter a valid date of birth.'
+  if (!DATE.test(input.dateOfBirth ?? '') || !isIsoDate(input.dateOfBirth) || input.dateOfBirth >= new Date().toISOString().slice(0, 10)) return 'Enter a valid date of birth.'
   if (input.gender !== 'm' && input.gender !== 'f') return 'Choose the gender on the travel document.'
   if (!EMAIL.test(input.email ?? '') || input.email.length > 254) return 'Enter a valid email address.'
   if (!PHONE.test(input.phoneNumber ?? '')) return 'Enter phone numbers in international format, like +2348012345678.'
   if (requiresPassport) {
     if (!/^[A-Z0-9]{5,20}$/i.test(input.passportNumber ?? '')) return 'Enter a valid passport number.'
     if (!/^[A-Z]{2}$/.test(input.passportIssuingCountry ?? '')) return 'Enter the 2-letter passport country code, like NG.'
-    if (!DATE.test(input.passportExpiry ?? '') || new Date(input.passportExpiry!) <= new Date()) return 'Passport must not be expired.'
+    if (!DATE.test(input.passportExpiry ?? '') || !isIsoDate(input.passportExpiry!) || input.passportExpiry! <= new Date().toISOString().slice(0, 10)) return 'Passport must not be expired.'
   }
   return null
 }
 
 function getOrigin(request: Request) {
-  const forwardedHost = request.headers.get('x-forwarded-host')
-  if (forwardedHost) return `${request.headers.get('x-forwarded-proto') ?? 'https'}://${forwardedHost}`
-  return request.headers.get('origin') ?? new URL(request.url).origin
+  const allowedOrigin = new URL(request.url).origin
+  const suppliedOrigin = request.headers.get('origin')
+  const fetchSite = request.headers.get('sec-fetch-site')
+  if (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') return null
+  if (suppliedOrigin) {
+    try {
+      if (new URL(suppliedOrigin).origin !== allowedOrigin) return null
+    } catch {
+      return null
+    }
+  }
+  return allowedOrigin
 }
 
 export async function POST(request: Request) {
   const status = getFlightServiceStatus()
   if (!status.checkoutEnabled) return notConfiguredResponse(status.missing)
+
+  const origin = getOrigin(request)
+  if (!origin) return Response.json({ error: 'Checkout request origin is invalid.' }, { status: 403 })
 
   const body = (await request.json().catch(() => null)) as {
     offerId?: string
@@ -132,7 +145,6 @@ export async function POST(request: Request) {
   if (!booking) return Response.json({ error: 'Checkout is already being prepared. Try again.' }, { status: 409 })
 
   const route = itinerary.slices.map((slice) => `${slice.originCode} → ${slice.destinationCode}`).join(', ')
-  const origin = getOrigin(request)
 
   try {
     const session = await stripe.checkout.sessions.create(
