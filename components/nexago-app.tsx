@@ -241,6 +241,8 @@ export function NexaGoApp() {
   const [authStep, setAuthStep] = useState<'phone' | 'otp'>('phone')
   const [emailMode, setEmailMode] = useState<'login' | 'register'>('login')
   const [authPhone, setAuthPhone] = useState('')
+  const [authCountryCode, setAuthCountryCode] = useState('+234')
+  const [registrationConsent, setRegistrationConsent] = useState(false)
   const [authEmail, setAuthEmail] = useState('')
   const [authPassword, setAuthPassword] = useState('')
   const [otp, setOtp] = useState('')
@@ -737,7 +739,11 @@ export function NexaGoApp() {
     setAuthLoading(true)
     setAuthError('')
     try {
-      await sendOtp(authPhone.trim())
+      const localNumber = authPhone.trim().replace(/[\\s().-]/g, '')
+      const fullPhone = localNumber.startsWith('+') ? localNumber : `${authCountryCode}${localNumber.replace(/^0+/, '')}`
+      if (!/^\+[1-9]\d{7,14}$/.test(fullPhone)) throw new Error('Enter a valid phone number with country code.')
+      await sendOtp(fullPhone)
+      setAuthPhone(fullPhone)
       setAuthStep('otp')
     } catch (error) {
       setAuthError(getErrorMessage(error))
@@ -770,6 +776,10 @@ export function NexaGoApp() {
     setAuthLoading(true)
     setAuthError('')
     try {
+      if (emailMode === 'register' && !registrationConsent) {
+        setAuthError('Please accept the Terms of Service and Privacy Policy to create an account.')
+        return
+      }
       let verified: AuthSession
       if (emailMode === 'login') {
         verified = await loginWithEmail(authEmail.trim(), authPassword)
@@ -1258,9 +1268,9 @@ export function NexaGoApp() {
 
         {authMode === 'phone' ? (
           <>
-            <p className="mt-3 text-sm leading-6 text-slate-500">{authStep === 'phone' ? 'We’ll send a one-time code to your Nigerian phone number.' : `Enter the verification code sent to ${authPhone}.`}</p>
+            <p className="mt-3 text-sm leading-6 text-slate-500">{authStep === 'phone' ? 'Choose your country code and enter your number to receive a one-time code.' : `Enter the verification code sent to ${authPhone}.`}</p>
             <form className="mt-4 grid gap-4" onSubmit={(event) => void (authStep === 'phone' ? handleSendOtp(event) : handleVerifyOtp(event))}>
-              {authStep === 'phone' ? <label className={labelClass}>Phone number<input required type="tel" autoFocus autoComplete="tel" value={authPhone} onChange={(event) => setAuthPhone(event.target.value)} placeholder="0801 234 5678" className={fieldClass} /></label> : <label className={labelClass}>Verification code<input required autoFocus inputMode="numeric" autoComplete="one-time-code" minLength={4} maxLength={8} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="Enter code" className={fieldClass} /></label>}
+              {authStep === 'phone' ? <div className="grid gap-2"><label className={labelClass}>Country code<select aria-label="Country calling code" value={authCountryCode} onChange={(event) => setAuthCountryCode(event.target.value)} className={fieldClass}><option value="+234">Nigeria (+234)</option><option value="+1">United States / Canada (+1)</option><option value="+44">United Kingdom (+44)</option><option value="+233">Ghana (+233)</option><option value="+254">Kenya (+254)</option><option value="+27">South Africa (+27)</option><option value="+91">India (+91)</option><option value="+971">United Arab Emirates (+971)</option></select></label><label className={labelClass}>Phone number<input required type="tel" autoFocus autoComplete="tel-national" value={authPhone} onChange={(event) => setAuthPhone(event.target.value)} placeholder="801 234 5678" className={fieldClass} /></label></div> : <label className={labelClass}>Verification code<input required autoFocus inputMode="numeric" autoComplete="one-time-code" minLength={4} maxLength={8} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="Enter code" className={fieldClass} /></label>}
               {authError && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-3 text-xs leading-5 text-rose-800">{authError}</p>}
               <button disabled={authLoading} type="submit" className="h-12 rounded-xl bg-teal-800 text-sm font-bold text-white disabled:opacity-60">{authLoading ? 'Please wait…' : authStep === 'phone' ? 'Send verification code' : 'Verify & sign in'}</button>
               {authStep === 'otp' && <button type="button" onClick={() => { setAuthStep('phone'); setAuthError('') }} className="text-xs font-semibold text-teal-800">Use a different phone number</button>}
@@ -1277,8 +1287,9 @@ export function NexaGoApp() {
             <form className="mt-4 grid gap-4" onSubmit={(event) => void handleEmailAuth(event)}>
               <label className={labelClass}>Email address<input required type="email" autoComplete="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="name@example.com" className={fieldClass} /></label>
               <label className={labelClass}>Password<input required type="password" autoComplete={emailMode === 'login' ? 'current-password' : 'new-password'} minLength={6} value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} placeholder="At least 6 characters" className={fieldClass} /></label>
+              {emailMode === 'register' && <label className="flex items-start gap-2 text-xs leading-5 text-slate-600"><input type="checkbox" required checked={registrationConsent} onChange={(event) => setRegistrationConsent(event.target.checked)} className="mt-1 accent-teal-700" /><span>I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-teal-800 underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-teal-800 underline">Privacy Policy</a>.</span></label>}
               {authError && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-3 text-xs leading-5 text-rose-800">{authError}</p>}
-              <button disabled={authLoading} type="submit" className="h-12 rounded-xl bg-teal-800 text-sm font-bold text-white disabled:opacity-60">
+              <button disabled={authLoading || (emailMode === 'register' && !registrationConsent)} type="submit" className="h-12 rounded-xl bg-teal-800 text-sm font-bold text-white disabled:opacity-60">
                 {authLoading ? 'Please wait…' : emailMode === 'login' ? 'Sign in with Email' : 'Register Account'}
               </button>
             </form>
