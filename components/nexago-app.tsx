@@ -20,7 +20,7 @@ import {
   Landmark,
   Receipt,
   Minus,
-  History as HistoryIcon, Navigation,
+  Navigation,
   Plane,
   Plus,
   ShieldCheck,
@@ -817,8 +817,8 @@ export function NexaGoApp() {
 
   const handlePinSetup = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!/^\d{4,6}$/.test(newPin)) {
-      setPinSetupError('Your PIN must be 4 to 6 digits.')
+    if (!/^\d{6}$/.test(newPin)) {
+      setPinSetupError('Your PIN must be exactly 6 digits.')
       return
     }
     if (newPin !== confirmPin) {
@@ -930,7 +930,7 @@ export function NexaGoApp() {
             <BrandLogo />
           </button>
           <nav className="flex items-center gap-1 rounded-xl bg-slate-100 p-1" aria-label="Main navigation">
-            {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet], ['activity', 'Activity', HistoryIcon]] as const).map(([key, label, Icon]) => (
+            {([['rides', 'Rides', Navigation], ['flights', 'Flights', Plane], ['wallet', 'NexaPay', Wallet]] as const).map(([key, label, Icon]) => (
               <button key={key} type="button" onClick={() => changeScreen(key)} aria-current={screen === key ? 'page' : undefined} className={`flex h-9 items-center gap-2 rounded-lg px-3.5 text-xs font-semibold transition ${screen === key ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}><Icon size={15} aria-hidden="true" />{label}</button>
             ))}
           </nav>
@@ -1091,11 +1091,11 @@ export function NexaGoApp() {
         )}
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur md:hidden" aria-label="Main navigation">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur md:hidden" aria-label="Main navigation">
         <button type="button" onClick={() => changeScreen('rides')} aria-current={screen === 'rides' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'rides' ? 'text-teal-800' : 'text-slate-400'}`}><Navigation size={18} />Rides</button>
         <button type="button" onClick={() => changeScreen('flights')} aria-current={screen === 'flights' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'flights' ? 'text-teal-800' : 'text-slate-400'}`}><Plane size={18} />Flights</button>
         <button type="button" onClick={() => changeScreen('wallet')} aria-current={screen === 'wallet' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'wallet' ? 'text-teal-800' : 'text-slate-400'}`}><Wallet size={18} />NexaPay</button>
-        <button type="button" onClick={() => changeScreen('activity')} aria-current={screen === 'activity' ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-semibold ${screen === 'activity' ? 'text-teal-800' : 'text-slate-400'}`}><HistoryIcon size={18} />Activity</button>
+
       </nav>
 
       {fareOpen && selectedVehicle && <Sheet title="Your ride fare" onClose={() => setFareOpen(false)}>
@@ -1125,7 +1125,7 @@ export function NexaGoApp() {
             <label className={labelClass}>Phone number<input required type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="0801 234 5678" className={fieldClass} /></label>
             {walletModal === 'data' ? <label className={labelClass}>Data plan<select required value={planId} onChange={(event) => setPlanId(event.target.value)} className={fieldClass} disabled={bundleLoading || dataBundles.length === 0}><option value="">{bundleLoading ? 'Loading plans…' : 'Choose a data plan'}</option>{dataBundles.map((bundle) => <option key={bundle.code} value={bundle.code}>{bundle.name} · {formatNaira(bundle.priceKobo / 100)}</option>)}</select></label> : <label className={labelClass}>Amount in naira<input required type="number" min="50" step="50" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="₦ 500" className={fieldClass} /></label>}
           </>}
-          <label className={labelClass}>Transaction PIN<input required type="password" inputMode="numeric" autoComplete="one-time-code" minLength={4} maxLength={6} pattern="[0-9]{4,6}" value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="4–6 digit PIN" className={fieldClass} /></label>
+          <label className={labelClass}>Transaction PIN<input required type="password" inputMode="numeric" autoComplete="one-time-code" minLength={6} maxLength={6} pattern="[0-9]{6}" value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 digit PIN" className={fieldClass} /></label>
           {walletError && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-3 text-xs leading-5 text-rose-800">{walletError}{walletError.includes('Sign in') && <button type="button" onClick={openAuth} className="ml-1 font-bold underline">Sign in</button>}</p>}
           <button type="submit" disabled={walletLoading} className="mt-1 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-800 text-sm font-bold text-white transition hover:bg-teal-900 disabled:cursor-wait disabled:opacity-60">{walletLoading ? 'Processing securely…' : walletModal === 'send' ? 'Review & send' : 'Confirm purchase'}<ArrowRight size={16} /></button>
           <p className="text-center text-[10px] leading-4 text-slate-400">Transactions are sent securely to NexaGo. Never share your PIN with another person.</p>
@@ -1150,6 +1150,15 @@ export function NexaGoApp() {
               setProfileOpen(false)
               changeScreen('wallet')
             }}
+            onOpenHistory={() => {
+              setProfileOpen(false)
+              changeScreen('activity')
+            }}
+            onOpenSupport={() => {
+              setProfileOpen(false)
+              setSupportReference('')
+              setSupportOpen(true)
+            }}
             onOpenSafety={() => {
               setProfileOpen(false)
               setSosOpen(true)
@@ -1171,11 +1180,11 @@ export function NexaGoApp() {
       )}
 
       {pinSetupOpen && <Sheet title={hasPinSet ? 'Change transaction PIN' : 'Create transaction PIN'} onClose={() => { if (!pinSetupLoading) setPinSetupOpen(false) }}>
-        <p className="mt-1 text-sm leading-6 text-slate-500">Your PIN authorizes every NexaPay payment. Choose 4 to 6 digits that are hard to guess.</p>
+<p className="mt-2 text-sm leading-6 text-slate-500">Choose exactly 6 digits. You’ll confirm your new PIN before it’s saved.</p>
         <form onSubmit={(event) => void handlePinSetup(event)} className="mt-4 grid gap-3.5">
           {hasPinSet && <label className={labelClass}>Current PIN<input required type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={currentPinValue} onChange={(event) => setCurrentPinValue(event.target.value.replace(/\D/g, '').slice(0, 6))} className={fieldClass} /></label>}
-          <label className={labelClass}>New PIN<input required autoFocus type="password" inputMode="numeric" autoComplete="off" minLength={4} maxLength={6} value={newPin} onChange={(event) => setNewPin(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="4–6 digits" className={fieldClass} /></label>
-          <label className={labelClass}>Confirm new PIN<input required type="password" inputMode="numeric" autoComplete="off" minLength={4} maxLength={6} value={confirmPin} onChange={(event) => setConfirmPin(event.target.value.replace(/\D/g, '').slice(0, 6))} className={fieldClass} /></label>
+          <label className={labelClass}>New PIN<input required autoFocus type="password" inputMode="numeric" autoComplete="off" minLength={6} maxLength={6} value={newPin} onChange={(event) => setNewPin(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 digits" className={fieldClass} /></label>
+          <label className={labelClass}>Confirm new PIN<input required type="password" inputMode="numeric" autoComplete="off" minLength={6} maxLength={6} value={confirmPin} onChange={(event) => setConfirmPin(event.target.value.replace(/\D/g, '').slice(0, 6))} className={fieldClass} /></label>
           {pinSetupError && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-3 text-xs leading-5 text-rose-800">{pinSetupError}</p>}
           <button type="submit" disabled={pinSetupLoading} className="h-12 rounded-xl bg-teal-800 text-sm font-bold text-white transition hover:bg-teal-900 disabled:opacity-60">{pinSetupLoading ? 'Saving securely…' : hasPinSet ? 'Change PIN' : 'Create PIN'}</button>
         </form>

@@ -40,8 +40,8 @@ export default function PinModal({ isOpen, onClose, onSuccess, title = 'Enter tr
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!/^\d{4,6}$/.test(pin)) {
-      setError('Your PIN is 4 to 6 digits.')
+    if (!/^\d{6}$/.test(pin)) {
+      setError('Your PIN must be exactly 6 digits.')
       return
     }
     setSubmitting(true)
@@ -76,7 +76,7 @@ export default function PinModal({ isOpen, onClose, onSuccess, title = 'Enter tr
             type="password"
             inputMode="numeric"
             autoComplete="off"
-            minLength={4}
+            minLength={6}
             maxLength={6}
             value={pin}
             onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 6)); setError('') }}
@@ -86,7 +86,7 @@ export default function PinModal({ isOpen, onClose, onSuccess, title = 'Enter tr
             className="h-14 w-full rounded-xl border border-slate-200 bg-white text-center text-2xl font-bold tracking-[0.5em] text-slate-900 outline-none transition placeholder:text-slate-300 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10"
           />
           {error && <p id="transaction-pin-error" role="alert" className="rounded-xl bg-rose-50 px-3.5 py-3 text-xs leading-5 text-rose-800">{error}</p>}
-          <button type="submit" disabled={submitting || pin.length < 4} className="h-12 rounded-xl bg-teal-800 text-sm font-bold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? 'Authorizing…' : 'Confirm'}</button>
+          <button type="submit" disabled={submitting || pin.length !== 6} className="h-12 rounded-xl bg-teal-800 text-sm font-bold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? 'Authorizing…' : 'Confirm'}</button>
           <p className="text-center text-[10px] leading-4 text-slate-400">NexaGo will never ask for your PIN by phone, SMS, or email.</p>
         </form>
       </section>

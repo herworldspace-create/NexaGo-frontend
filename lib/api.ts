@@ -747,7 +747,7 @@ export function getWalletBalance(): Promise<WalletBalance> {
   return request<WalletBalance>("wallet");
 }
 
-/** Create or change the 4–6 digit transaction PIN required for wallet payments. */
+/** Create or change the 6-digit transaction PIN required for wallet payments. */
 export function setTransactionPin(newPin: string, currentPin?: string): Promise<{ updated: boolean }> {
   return request<{ updated: boolean }>("wallet/pin", {
     method: "POST",
